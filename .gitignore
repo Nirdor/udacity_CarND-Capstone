@@ -6,3 +6,6 @@ devel
 profile.tmp
 
 *.bag
+
+ros/src/CMakeLists.txt
+*.pb

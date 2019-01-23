@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
+from std_msgs.msg import Int32
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
 
@@ -35,7 +36,8 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
+        rospy.Subscriber('/obstacle_waypoint', Int32, self.obstacle_cb)
 
         self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
 
@@ -43,6 +45,7 @@ class WaypointUpdater(object):
         self.pose = None
         self.waypoints = None
         self.tree = None
+        self.stopline = -1
 
         #rospy.spin()
         self.loop()
@@ -58,8 +61,31 @@ class WaypointUpdater(object):
     def publish(self, id):
         lane = Lane()
         lane.header = self.waypoints.header
-        lane.waypoints = self.waypoints.waypoints[id:id + LOOKAHEAD_WPS]
+        waypoints = self.waypoints.waypoints[id:id + LOOKAHEAD_WPS]
+        
+        if self.stopline == -1 or self.stopline > id + LOOKAHEAD_WPS:
+          lane.waypoints = waypoints
+        else:
+          lane.waypoints = self.brake(waypoints, id)
         self.final_waypoints_pub.publish(lane)
+        
+    def brake(self, waypoints, id):
+      ret = []
+      
+      stop = max(self.stopline - id - 2, 0)
+      for i, wp in enumerate(waypoints):
+        p = Waypoint()
+        p.pose = wp.pose
+        
+        dist = self.distance(waypoints, i, stop)
+        vel = math.sqrt(2 * 3 * dist)
+        if vel < 1.:
+          vel = 0
+         
+        self.set_waypoint_velocity(p, min(vel, self.get_waypoint_velocity(wp)))
+        ret.append(p)
+        
+      return ret
     
     def calcID(self):
         x, y = self.pose.pose.position.x, self.pose.pose.position.y
@@ -88,7 +114,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        self.stopline = msg
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
@@ -97,8 +123,8 @@ class WaypointUpdater(object):
     def get_waypoint_velocity(self, waypoint):
         return waypoint.twist.twist.linear.x
 
-    def set_waypoint_velocity(self, waypoints, waypoint, velocity):
-        waypoints[waypoint].twist.twist.linear.x = velocity
+    def set_waypoint_velocity(self, waypoint, velocity):
+        waypoint.twist.twist.linear.x = velocity
 
     def distance(self, waypoints, wp1, wp2):
         dist = 0
