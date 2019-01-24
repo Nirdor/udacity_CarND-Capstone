@@ -15,7 +15,8 @@ import math
 import numpy as np
 
 STATE_COUNT_THRESHOLD = 3
-train = True
+train = False
+import time
 
 class TLDetector(object):
     def __init__(self):
@@ -28,6 +29,7 @@ class TLDetector(object):
         '''
         rospy.init_node('tl_detector')
 
+        self.loaded = False
         self.pose = None
         self.waypoints = None
         self.camera_image = None
@@ -35,6 +37,8 @@ class TLDetector(object):
         self.lights = []
         self.img = None
         self.has_image = False
+        self.state = TrafficLight.UNKNOWN
+        self.last_state = TrafficLight.UNKNOWN
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -51,12 +55,11 @@ class TLDetector(object):
         #self.bridge = CvBridge()
         self.light_classifier = TLClassifier(self.config['is_site'])
         #self.listener = tf.TransformListener()
-
-        self.state = TrafficLight.UNKNOWN
-        self.last_state = TrafficLight.UNKNOWN
+        
         self.last_wp = -1
         self.state_count = 0
-
+        self.loaded = True
+        
         rospy.spin()
 
     def pose_cb(self, msg):
@@ -79,11 +82,10 @@ class TLDetector(object):
         """
         self.has_image = True
         self.camera_image = msg
-        img = np.frombuffer(self.camera_image.data, np.uint8).reshape((self.camera_image.height, self.camera_image.width, 3))
-        img = cv2.resize(img, None, fx = 0.5, fy = 0.5, interpolation = cv2.INTER_AREA)
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        self.img = img.reshape((1, self.camera_image.height // 2, self.camera_image.width // 2, 3))
-        light_wp, state = self.process_traffic_lights()
+        if self.loaded:
+          light_wp, state = self.process_traffic_lights()
+        else:
+          return
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -128,11 +130,15 @@ class TLDetector(object):
             int: ID of traffic light color (specified in styx_msgs/TrafficLight)
 
         """
-        if(not self.has_image):
+        if(not self.has_image or self.light_classifier is None):
             self.prev_light_loc = None
             return False
         
         #Get classification
+        img = np.frombuffer(self.camera_image.data, np.uint8).reshape((self.camera_image.height, self.camera_image.width, 3))
+        img = cv2.resize(img, None, fx = 0.5, fy = 0.5, interpolation = cv2.INTER_AREA)
+        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        self.img = img.reshape((1, self.camera_image.height // 2, self.camera_image.width // 2, 3))
         return self.light_classifier.get_classification(self.img)
 
     def distance(self, waypoints, wp1, wp2):
@@ -167,7 +173,7 @@ class TLDetector(object):
                     stop_pose = Pose()
                     stop_pose.position.x, stop_pose.position.y = stop
                     light_wp = self.get_closest_waypoint(stop_pose)
-                    if light_wp > car_position and self.distance(self.waypoints, car_position, light_wp) < 100:
+                    if light_wp > car_position and self.distance(self.waypoints, car_position, light_wp) < 70:
                         light = light_wp
                         break
             else:
@@ -180,10 +186,13 @@ class TLDetector(object):
                     
                 
         if light:
-            state = self.get_light_state(light)
-            rospy.loginfo('Light state found:{} at {}'.format(state, light_wp))
-            return light_wp, state
-        #self.waypoints = None
+            t = time.time()
+            if not train:
+                state = self.get_light_state(light)
+            else:
+                state = l.state
+            rospy.loginfo('Light state found:{} at {} in {}'.format(state, light_wp, time.time() - t))
+            return light, state
         return -1, TrafficLight.UNKNOWN
 
 if __name__ == '__main__':

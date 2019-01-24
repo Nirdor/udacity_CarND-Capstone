@@ -6,6 +6,7 @@ import tensorflow as tf
 class TLClassifier(object):
   def __init__(self, site = False):
     #TODO load classifier
+    self.loaded = False
     if site:
       pass
     else:
@@ -15,6 +16,8 @@ class TLClassifier(object):
     self.detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
     self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
     self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
+    self.sess = tf.Session(graph=self.detection_graph)
+    self.loaded = True
   
   def load_graph(self, graph_file):
     """Loads a frozen inference graph"""
@@ -39,19 +42,21 @@ class TLClassifier(object):
     """
     #TODO implement light color prediction
     
+    if not self.loaded:
+      return TrafficLight.UNKNOWN
     ret = TrafficLight.UNKNOWN
     
-    with tf.Session(graph=self.detection_graph) as sess:
-      (boxes, scores, classes) = sess.run([self.detection_boxes, self.detection_scores, self.detection_classes], feed_dict={self.input_tensor: image})
-      
-      boxes = np.squeeze(boxes)
-      scores = np.squeeze(scores)
-      classes = np.squeeze(classes)
-      
-      for i in range(len(classes)):
-        if scores[i] > 0.8:
-          if ret != TrafficLight.UNKNOWN and ret != classes[i] - 1:
-            return TrafficLight.UNKNOWN
-          ret = classes[i] - 1
+    #with tf.Session(graph=self.detection_graph) as sess:
+    (boxes, scores, classes) = self.sess.run([self.detection_boxes, self.detection_scores, self.detection_classes], feed_dict={self.input_tensor: image})
+    
+    boxes = np.squeeze(boxes)
+    scores = np.squeeze(scores)
+    classes = np.squeeze(classes)
+    
+    for i in range(len(classes)):
+      if scores[i] > 0.8:
+        if ret != TrafficLight.UNKNOWN and ret != classes[i] - 1:
+          return TrafficLight.UNKNOWN
+        ret = int(classes[i] - 1)
     
       return ret

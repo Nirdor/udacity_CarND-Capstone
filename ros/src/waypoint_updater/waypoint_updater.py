@@ -46,12 +46,12 @@ class WaypointUpdater(object):
         self.waypoints = None
         self.tree = None
         self.stopline = -1
-
+        
         #rospy.spin()
         self.loop()
         
     def loop(self):
-        rate = rospy.Rate(50) # 50Hz
+        rate = rospy.Rate(5) # 25Hz
         while not rospy.is_shutdown():
             if self.tree is not None and self.pose is not None:
                 id = self.calcID()
@@ -62,8 +62,7 @@ class WaypointUpdater(object):
         lane = Lane()
         lane.header = self.waypoints.header
         waypoints = self.waypoints.waypoints[id:id + LOOKAHEAD_WPS]
-        
-        if self.stopline == -1 or self.stopline > id + LOOKAHEAD_WPS:
+        if self.stopline < id or self.stopline > id + LOOKAHEAD_WPS:
           lane.waypoints = waypoints
         else:
           lane.waypoints = self.brake(waypoints, id)
@@ -73,6 +72,7 @@ class WaypointUpdater(object):
       ret = []
       
       stop = max(self.stopline - id - 2, 0)
+      rospy.logerr('Break at :{}'.format(stop))
       for i, wp in enumerate(waypoints):
         p = Waypoint()
         p.pose = wp.pose
@@ -114,7 +114,7 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
-        self.stopline = msg
+        self.stopline = msg.data
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
