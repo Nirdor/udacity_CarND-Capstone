@@ -71,7 +71,7 @@ class WaypointUpdater(object):
     def brake(self, waypoints, id):
       ret = []
       
-      stop = max(self.stopline - id - 2, 0)
+      stop = max(self.stopline - id - 3, 0)
       rospy.logerr('Break at :{}'.format(stop))
       for i, wp in enumerate(waypoints):
         p = Waypoint()

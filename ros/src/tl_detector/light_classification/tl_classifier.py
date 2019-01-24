@@ -54,7 +54,7 @@ class TLClassifier(object):
     classes = np.squeeze(classes)
     
     for i in range(len(classes)):
-      if scores[i] > 0.8:
+      if scores[i] > 0.5:
         if ret != TrafficLight.UNKNOWN and ret != classes[i] - 1:
           return TrafficLight.UNKNOWN
         ret = int(classes[i] - 1)

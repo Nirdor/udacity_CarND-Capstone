@@ -39,6 +39,7 @@ class TLDetector(object):
         self.has_image = False
         self.state = TrafficLight.UNKNOWN
         self.last_state = TrafficLight.UNKNOWN
+        self.last_time = 0
 
         sub1 = rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         sub2 = rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -187,11 +188,15 @@ class TLDetector(object):
                 
         if light:
             t = time.time()
-            if not train:
-                state = self.get_light_state(light)
+            if t - self.last_time < 0.5:
+                state = self.last_state
             else:
-                state = l.state
-            rospy.loginfo('Light state found:{} at {} in {}'.format(state, light_wp, time.time() - t))
+                if not train:
+                    state = self.get_light_state(light)
+                else:
+                    state = l.state
+            self.last_time = time.time()
+            rospy.loginfo('Light state found:{} at {} in {}'.format(state, light_wp, self.last_time - t))
             return light, state
         return -1, TrafficLight.UNKNOWN
 
