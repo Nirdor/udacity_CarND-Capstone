@@ -195,8 +195,8 @@ class TLDetector(object):
                     state = self.get_light_state(light)
                 else:
                     state = l.state
-            self.last_time = time.time()
-            rospy.loginfo('Light state found:{} at {} in {}'.format(state, light_wp, self.last_time - t))
+                self.last_time = time.time()
+                rospy.loginfo('Light state found:{} at {} in {}'.format(state, light_wp, self.last_time - t))
             return light, state
         return -1, TrafficLight.UNKNOWN
 
