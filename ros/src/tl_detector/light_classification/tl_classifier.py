@@ -17,6 +17,7 @@ class TLClassifier(object):
     self.detection_scores = self.detection_graph.get_tensor_by_name('detection_scores:0')
     self.detection_classes = self.detection_graph.get_tensor_by_name('detection_classes:0')
     self.sess = tf.Session(graph=self.detection_graph)
+    self.sess.run([self.detection_boxes, self.detection_scores, self.detection_classes], feed_dict={self.input_tensor: np.zeros((1, 300, 400, 3), np.uint8)})
     self.loaded = True
   
   def load_graph(self, graph_file):
