@@ -54,7 +54,7 @@ class WaypointUpdater(object):
     def loop(self):
         rate = rospy.Rate(5) # 5Hz
         while not rospy.is_shutdown():
-            if self.tree is not None and self.pose is not None:
+            if self.tree and self.pose:
                 id = self.calcID()
                 self.publish(id)
             rate.sleep()
@@ -94,17 +94,14 @@ class WaypointUpdater(object):
         x, y = self.pose.pose.position.x, self.pose.pose.position.y
         
         id = self.tree.query([x, y])[1]
-        #check 
-        if id == len(self.waypoints.waypoints) - 1:
-            return -1
         
-        p0 = [self.waypoints.waypoints[id].pose.pose.position.x, self.waypoints.waypoints[id].pose.pose.position.y]
-        p1 = [self.waypoints.waypoints[id + 1].pose.pose.position.x, self.waypoints.waypoints[id].pose.pose.position.y]
+        p0 = np.array(self.waypoints_2d[id])
+        p1 = np.array(self.waypoints_2d[id - 1])
         
-        if np.dot(np.array(p1) - np.array(p0), np.array(p0) - np.array([x, y])) > 0:
-            return id
+        if np.dot(p0 - p1, np.array([x, y]) - p0) > 0:
+            return (id + 1) % len(self.waypoints_2d)
         else:
-            return id + 1
+            return id
 
     def pose_cb(self, msg):
         # TODO: Implement
@@ -113,7 +110,8 @@ class WaypointUpdater(object):
     def waypoints_cb(self, waypoints):
         # TODO: Implement
         self.waypoints = waypoints
-        self.tree = KDTree([[p.pose.pose.position.x, p.pose.pose.position.y] for p in waypoints.waypoints])
+        self.waypoints_2d = [[p.pose.pose.position.x, p.pose.pose.position.y] for p in waypoints.waypoints]
+        self.tree = KDTree(self.waypoints_2d)
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
