@@ -190,7 +190,7 @@ class TLDetector(object):
                 
         if light:
             t = time.time()
-            if t - self.last_time < 0.1:
+            if t - self.last_time < 0.2:
                 return None, None
             else:
                 if not train:
