@@ -83,10 +83,11 @@ class TLDetector(object):
         """
         self.has_image = True
         self.camera_image = msg
-        if self.loaded:
+        if self.loaded and time.time() - self.last_time > 0.2:
             light_wp, state = self.process_traffic_lights()
         else:
             return
+        self.last_time = time.time()
         if light_wp == None:
             return
 
@@ -189,16 +190,10 @@ class TLDetector(object):
                     
                 
         if light:
-            t = time.time()
-            if t - self.last_time < 0.2:
-                return None, None
+            if not train:
+                state = self.get_light_state(light)
             else:
-                if not train:
-                    state = self.get_light_state(light)
-                else:
-                    state = l.state
-                self.last_time = time.time()
-                rospy.loginfo('Light found:{} at {} in {}'.format({1:'red', 2:'yellow', 3:'green', 4:'???'}[state], light_wp, self.last_time - t))
+                state = l.state
             return light, state
         return -1, TrafficLight.UNKNOWN
 
