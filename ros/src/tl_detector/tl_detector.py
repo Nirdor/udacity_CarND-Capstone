@@ -14,7 +14,7 @@ import yaml
 import math
 import numpy as np
 
-STATE_COUNT_THRESHOLD = 3
+STATE_COUNT_THRESHOLD = 2
 train = False
 import time
 
@@ -84,9 +84,11 @@ class TLDetector(object):
         self.has_image = True
         self.camera_image = msg
         if self.loaded:
-          light_wp, state = self.process_traffic_lights()
+            light_wp, state = self.process_traffic_lights()
         else:
-          return
+            return
+        if light_wp == None:
+            return
 
         '''
         Publish upcoming red lights at camera frequency.
@@ -188,15 +190,15 @@ class TLDetector(object):
                 
         if light:
             t = time.time()
-            if t - self.last_time < 0.5:
-                state = self.last_state
+            if t - self.last_time < 0.1:
+                return None, None
             else:
                 if not train:
                     state = self.get_light_state(light)
                 else:
                     state = l.state
                 self.last_time = time.time()
-                rospy.loginfo('Light state found:{} at {} in {}'.format(state, light_wp, self.last_time - t))
+                rospy.loginfo('Light found:{} at {} in {}'.format({1:'red', 2:'yellow', 3:'green', 4:'???'}[state], light_wp, self.last_time - t))
             return light, state
         return -1, TrafficLight.UNKNOWN
 

@@ -2,6 +2,7 @@ from styx_msgs.msg import TrafficLight
 
 import numpy as np
 import tensorflow as tf
+import rospy
 
 class TLClassifier(object):
   def __init__(self, site = False):
@@ -10,7 +11,7 @@ class TLClassifier(object):
     if site:
       pass
     else:
-      self.detection_graph = self.load_graph('frozen_inference_graph.pb')
+      self.detection_graph = self.load_graph('ssd_inception.pb')
     
     self.input_tensor = self.detection_graph.get_tensor_by_name('image_tensor:0')
     self.detection_boxes = self.detection_graph.get_tensor_by_name('detection_boxes:0')
@@ -53,11 +54,9 @@ class TLClassifier(object):
     boxes = np.squeeze(boxes)
     scores = np.squeeze(scores)
     classes = np.squeeze(classes)
+    #rospy.loginfo('classes:{}, scores:{}'.format(classes, scores))
     
-    for i in range(len(classes)):
-      if scores[i] > 0.5:
-        if ret != TrafficLight.UNKNOWN and ret != classes[i] - 1:
-          return TrafficLight.UNKNOWN
-        ret = int(classes[i] - 1)
+    if len(classes) > 0:
+      ret = int(classes[np.argmax(scores)])
     
-      return ret
+    return ret
