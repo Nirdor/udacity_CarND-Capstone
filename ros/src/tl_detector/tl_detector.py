@@ -130,7 +130,8 @@ class TLDetector(object):
         #Get classification
         img = np.frombuffer(self.camera_image.data, np.uint8).reshape((self.camera_image.height, self.camera_image.width, 3))
         img = cv2.resize(img, None, fx = 0.5, fy = 0.5, interpolation = cv2.INTER_AREA)
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        #img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+        #cv2.imwrite('/mnt/c/temp/img.png', img)
         self.img = img.reshape((1, self.camera_image.height // 2, self.camera_image.width // 2, 3))
         return self.light_classifier.get_classification(self.img)
 

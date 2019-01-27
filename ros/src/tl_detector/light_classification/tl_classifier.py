@@ -50,7 +50,7 @@ class TLClassifier(object):
     
     #with tf.Session(graph=self.detection_graph) as sess:
     (boxes, scores, classes) = self.sess.run([self.detection_boxes, self.detection_scores, self.detection_classes], feed_dict={self.input_tensor: image})
-    
+    #rospy.loginfo(str(zip(classes, scores)))
     boxes = np.squeeze(boxes)
     scores = np.squeeze(scores)
     classes = np.squeeze(classes)

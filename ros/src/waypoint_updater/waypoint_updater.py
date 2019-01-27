@@ -63,7 +63,7 @@ class WaypointUpdater(object):
         lane = Lane()
         lane.header = self.waypoints.header
         waypoints = self.waypoints.waypoints[id:id + LOOKAHEAD_WPS]
-        rospy.logerr('Stopline bekommen: {}, bei id: {}'.format(self.stopline, id))
+        #rospy.logerr('Stopline bekommen: {}, bei id: {}'.format(self.stopline, id))
         if self.stopline < id or self.stopline > id + LOOKAHEAD_WPS:
           lane.waypoints = waypoints
           rospy.loginfo('Fahren')
